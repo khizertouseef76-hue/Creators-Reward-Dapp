@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator Rewards Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Ethers.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Video Creator Rewards dApp</h1>
+        <p>A decentralized platform for logging vertical video campaign rewards.</p>
+        <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" alt="Ethereum Logo" width="50">
+    </header>
+
+    <main>
+        <h2>Connect Wallet</h2>
+        <button id="connectBtn" onclick="connectWallet()">Connect MetaMask</button>
+        <p id="walletStatus">Status: Not connected</p>
+
+        <section class="dashboard">
+            <h2>Your Reward Dashboard</h2>
+            <ul>
+                <li><strong>Network:</strong> Sepolia Testnet</li>
+                <li><strong>My Points Balance:</strong> <span id="myPoints">0</span></li>
+            </ul>
+            <button onclick="checkMyPoints()">Refresh Balance</button>
+        </section>
+
+        <section class="actions">
+            <h2>Redeem Points</h2>
+            <p>Convert your logged video views into claimable tokens.</p>
+            <input type="number" id="redeemAmount" placeholder="Amount to redeem">
+            <button onclick="redeemPoints()">Redeem</button>
+        </section>
+        
+        <p id="txStatus"></p>
+    </main>
+
+    <footer>
+        <p>Student Roll No: 24i-5704 | Course: MG3012</p>
+        <a href="https://sepolia.etherscan.io/" target="_blank">View Sepolia Etherscan</a>
+    </footer>
+
+    <script>
+        // REPLACE THIS WITH YOUR DEPLOYED CONTRACT ADDRESS
+        const contractAddress = "0x5c3c045D8dc97fD484a4f2D115568DEE1efd3404"; 
+        const contractABI = [
+            "function issuePoints(address _creator, uint _points) public",
+            "function redeemPoints(uint _points) public",
+            "function getMyPoints() public view returns (uint)",
+            "function getTotalAwarded() public view returns (uint)"
+        ];
+
+        let provider, signer, contract;
+
+        async function connectWallet() {
+            if (window.ethereum) {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                contract = new ethers.Contract(contractAddress, contractABI, signer);
+                
+                const address = await signer.getAddress();
+                document.getElementById('walletStatus').innerText = "Connected: " + address;
+                checkMyPoints();
+            } else {
+                alert("Please install MetaMask!");
+            }
+        }
+
+        async function checkMyPoints() {
+            if (!contract) return;
+            try {
+                const points = await contract.getMyPoints();
+                document.getElementById('myPoints').innerText = points.toString();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function redeemPoints() {
+            if (!contract) return;
+            const amount = document.getElementById('redeemAmount').value;
+            try {
+                document.getElementById('txStatus').innerText = "Transaction pending...";
+                const tx = await contract.redeemPoints(amount);
+                await tx.wait();
+                document.getElementById('txStatus').innerText = "Transaction successful!";
+                checkMyPoints();
+            } catch (error) {
+                document.getElementById('txStatus').innerText = "Transaction failed or insufficient points.";
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
